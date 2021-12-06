@@ -9,16 +9,16 @@ end)
 
 
 # Day 1
-day1 = Enum.chunk_every(input, 2,1,:discard)
+part1 = Enum.chunk_every(input, 2,1,:discard)
 |> Enum.filter(fn [h|[t]] -> h < t  end)
 |> Enum.count()
 
-:io.format("Day 1 - Part 1 = ~w~n",[day1])
+:io.format("Day 1 - Part 1 = ~w~n",[part1])
 
 
-day2 = Enum.chunk_every(input, 3,1,:discard)
+part2 = Enum.chunk_every(input, 3,1,:discard)
 |> Enum.map(fn x -> Enum.sum(x) end)
 |> Enum.chunk_every(2,1,:discard)
 |> Enum.filter(fn [h|[t]] -> h < t  end)
 |> Enum.count()
-:io.format("Day 1 - Part 2 = ~w~n",[day2])
+:io.format("Day 1 - Part 2 = ~w~n",[part2])
