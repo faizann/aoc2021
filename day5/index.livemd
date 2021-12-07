@@ -1,0 +1,166 @@
+# Day 5
+
+## Structs
+
+```elixir
+defmodule Coord do
+  defstruct x: 0, y: 0
+end
+
+defmodule VentLine do
+  defstruct start: %Coord{x: 0, y: 0}, endc: %Coord{x: 0, y: 0}
+end
+```
+
+## Setup
+
+```elixir
+input_1 =
+  File.read!("day5/input.txt")
+  |> String.replace(" ", "")
+  |> String.trim("\n")
+  |> String.split("\n")
+  |> Enum.map(fn data ->
+    String.split(data, "->")
+  end)
+  |> Enum.map(fn row ->
+    Enum.map(row, fn item ->
+      Enum.map(String.split(item, ","), fn num ->
+        {x, _} = Integer.parse(num)
+        x
+      end)
+    end)
+  end)
+
+input =
+  input_1
+  |> Enum.map(fn row ->
+    [start | [endc]] = row
+
+    %VentLine{
+      start: %Coord{x: Enum.at(start, 0), y: Enum.at(start, 1)},
+      endc: %{x: Enum.at(endc, 0), y: Enum.at(endc, 1)}
+    }
+  end)
+
+grid_size =
+  List.flatten(input_1)
+  |> Enum.max()
+
+# Create the grid.
+grid =
+  for _ <- 0..grid_size do
+    for _ <- 0..grid_size do
+      0
+    end
+  end
+
+:ok
+```
+
+## Part 1
+
+```elixir
+defmodule VentMap do
+  def mark_coords([start | tail], grid) do
+    new_grid =
+      List.update_at(grid, start.y, fn row ->
+        List.update_at(row, start.x, &(&1 + 1))
+      end)
+
+    mark_coords(tail, new_grid)
+  end
+
+  def mark_coords([], grid) do
+    grid
+  end
+
+  def vector_to_line(%VentLine{} = vent_line) do
+    if vent_line.start.x != vent_line.endc.x do
+      for x <- vent_line.start.x..vent_line.endc.x do
+        %Coord{x: x, y: vent_line.start.y}
+      end
+    else
+      for y <- vent_line.start.y..vent_line.endc.y do
+        %Coord{x: vent_line.start.x, y: y}
+      end
+    end
+  end
+
+  def vector_to_diagonal(%VentLine{} = vent_line) do
+    x_coords =
+      for x <- vent_line.start.x..vent_line.endc.x do
+        x
+      end
+
+    y_coords =
+      for y <- vent_line.start.y..vent_line.endc.y do
+        y
+      end
+
+    Enum.zip_with([x_coords, y_coords], fn [x, y] ->
+      %Coord{x: x, y: y}
+    end)
+  end
+
+  def create_map(coords, grid) when is_list(coords) do
+    Enum.reduce(coords, grid, fn coord, gridacc ->
+      VentMap.mark_coords(coord, gridacc)
+    end)
+  end
+
+  def count_marks(grid, min) do
+    grid
+    |> Enum.reduce(0, fn row, acc ->
+      Enum.reduce(row, acc, fn item, acc1 ->
+        case item > min do
+          true -> acc1 + 1
+          _ -> acc1
+        end
+      end)
+    end)
+  end
+end
+
+# Filter input to horizontal/vertical lines
+hor_ver_input =
+  input
+  |> Enum.filter(fn coord ->
+    coord.start.x == coord.endc.x or coord.start.y == coord.endc.y
+  end)
+
+coords =
+  hor_ver_input
+  |> Enum.map(fn coord ->
+    VentMap.vector_to_line(coord)
+  end)
+
+part1 =
+  coords
+  |> VentMap.create_map(grid)
+  |> VentMap.count_marks(1)
+```
+
+## Part 2
+
+```elixir
+# Part 2
+diagonal_input =
+  input
+  |> Enum.filter(fn coord ->
+    abs(coord.start.x - coord.endc.x) == abs(coord.endc.y - coord.start.y)
+  end)
+
+coords_diag =
+  diagonal_input
+  |> Enum.map(fn coord ->
+    VentMap.vector_to_diagonal(coord)
+  end)
+
+all_coords = coords_diag ++ coords
+
+part2 =
+  all_coords
+  |> VentMap.create_map(grid)
+  |> VentMap.count_marks(1)
+```
