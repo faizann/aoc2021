@@ -1,0 +1,83 @@
+<!-- livebook:{"autosave_interval_s":30} -->
+
+# Day 6
+
+## Setup
+
+```elixir
+input =
+  File.read!("input.txt")
+  |> String.replace(" ", "")
+  |> String.trim("\n")
+  |> String.split(",")
+  |> Enum.map(fn num ->
+    {x, _} = Integer.parse(num)
+    x
+  end)
+  |> Enum.frequencies()
+
+# input = Map.put_new(input, "dead", 0)
+IO.inspect(input)
+```
+
+## Part 1
+
+```elixir
+defmodule FishLife do
+  def next_day(fishlist) do
+    newfish = fishlist[0]
+
+    # remove dead fish
+    newfishlist =
+      Enum.filter(fishlist, fn {k, _} ->
+        k != 0
+      end)
+      |> Enum.into(%{})
+      |> Enum.map(fn {k, val} ->
+        case k > 0 do
+          true -> {k - 1, val}
+          # filtered out above
+          _ -> "should not happen"
+        end
+      end)
+      |> Enum.into(%{})
+
+    # increment 6 with new fish and set number of new fish at 8
+    case newfish != nil and newfish > 0 do
+      true ->
+        Map.put(newfishlist, 6, Map.get(newfishlist, 6, 0) + newfish)
+        |> Map.put(8, newfish)
+
+      _ ->
+        newfishlist
+    end
+  end
+
+  def fish_days(fishlist, max_days) when max_days > 0 do
+    newfishlist = next_day(fishlist)
+    fish_days(newfishlist, max_days - 1)
+  end
+
+  def fish_days(fishlist, 0) do
+    fishlist
+  end
+end
+
+tot_fish = FishLife.fish_days(input, 80)
+
+Enum.map(tot_fish, fn {_, v} ->
+  v
+end)
+|> Enum.sum()
+```
+
+## Part 2
+
+```elixir
+tot_fish = FishLife.fish_days(input, 256)
+
+Enum.map(tot_fish, fn {_, v} ->
+  v
+end)
+|> Enum.sum()
+```
