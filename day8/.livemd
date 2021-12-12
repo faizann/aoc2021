@@ -1,0 +1,17 @@
+<!-- livebook:{"autosave_interval_s":30,"persist_outputs":true} -->
+
+# Day 8
+
+## Section
+
+```elixir
+IO.puts("Hello")
+```
+
+```output
+Hello
+```
+
+```output
+:ok
+```

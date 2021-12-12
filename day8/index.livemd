@@ -1,0 +1,243 @@
+<!-- vim: syntax=markdown -->
+<!-- livebook:{"autosave_interval_s":30,"persist_outputs":true} -->
+
+# Day 8
+
+## Section
+
+```elixir
+number_segments = %{
+  0 => 6,
+  1 => 2,
+  2 => 5,
+  3 => 5,
+  4 => 4,
+  5 => 5,
+  6 => 6,
+  7 => 3,
+  8 => 7,
+  9 => 6
+}
+
+# IO.inspect(segments: number_segments)
+unique_segments =
+  number_segments
+  |> Enum.filter(fn {_, v} ->
+    Enum.filter(number_segments, fn {_, v1} ->
+      v1 == v
+    end)
+    |> Enum.count() == 1
+  end)
+  |> Enum.into(%{})
+
+IO.inspect(unique_segments: unique_segments)
+
+input =
+  File.read!("aoc2021/day8/input.txt")
+  |> String.trim("\n")
+  |> String.split("\n")
+
+signal_values =
+  input
+  |> Enum.map(fn row ->
+    String.split(row, "|")
+    |> then(fn val ->
+      {String.trim(Enum.at(val, 0)), String.trim(Enum.at(val, 1))}
+    end)
+  end)
+
+:ok
+```
+
+```output
+[unique_segments: %{1 => 2, 4 => 4, 7 => 3, 8 => 7}]
+```
+
+```output
+:ok
+```
+
+## Part 1
+
+```elixir
+Enum.map(signal_values, fn {_, value_string} ->
+  String.split(value_string, " ")
+  |> Enum.map(&String.length/1)
+  |> Enum.filter(fn reading ->
+    Enum.count(unique_segments, fn {_, val} ->
+      reading == val
+    end) > 0
+  end)
+  |> Enum.count()
+end)
+|> Enum.sum()
+```
+
+```output
+456
+```
+
+## Part 2
+
+```elixir
+# find 5, 2, 0 first
+defmodule SevenSegDisplay do
+  def find_unique_digit_patterns(all_values) do
+    Enum.filter(all_values, fn value ->
+      # 1
+      # 4
+      # 7
+      # 8
+      String.length(value) == 2 or
+        String.length(value) == 4 or
+        String.length(value) == 3 or
+        String.length(value) == 7
+    end)
+    |> Enum.map(fn value ->
+      case String.length(value) do
+        2 -> {1, value}
+        4 -> {4, value}
+        3 -> {7, value}
+        _ -> {8, value}
+      end
+    end)
+    |> Enum.into(%{})
+  end
+
+  def find_wire_pattern(all_values) do
+    digits_pattern = find_unique_digit_patterns(all_values)
+    # we know they are 5 char len
+    possible_2_3_5 =
+      Enum.filter(all_values, fn value ->
+        String.length(value) == 5
+      end)
+
+    # find 3 as it shares pattern with 1
+    pattern_3 =
+      Enum.filter(possible_2_3_5, fn pattern ->
+        Enum.all?(String.graphemes(digits_pattern[1]), fn ch ->
+          case :binary.match(pattern, to_string(ch)) do
+            :nomatch -> false
+            _ -> true
+          end
+        end)
+      end)
+      |> Enum.at(0)
+
+    digits_pattern = Map.put_new(digits_pattern, 3, pattern_3)
+
+    possible_0_6_9 =
+      Enum.filter(all_values, fn pattern ->
+        String.length(pattern) == 6
+      end)
+
+    # find 9 by comparing it to 3. 9 is 6 wires with all of them shared with 3
+    pattern_9 =
+      Enum.filter(possible_0_6_9, fn pattern ->
+        Enum.all?(String.graphemes(pattern_3), fn ch ->
+          case :binary.match(pattern, to_string(ch)) do
+            :nomatch -> false
+            _ -> true
+          end
+        end)
+      end)
+      |> Enum.at(0)
+
+    digits_pattern = Map.put_new(digits_pattern, 9, pattern_9)
+
+    # find 0 and 6 remainig
+    possible_0_6 =
+      Enum.filter(possible_0_6_9, fn pattern ->
+        pattern != pattern_9
+      end)
+
+    # find 0 as it shares all the borders with 7.
+    pattern_0 =
+      Enum.filter(possible_0_6, fn pattern ->
+        Enum.all?(String.graphemes(digits_pattern[7]), fn ch ->
+          case :binary.match(pattern, to_string(ch)) do
+            :nomatch -> false
+            _ -> true
+          end
+        end)
+      end)
+      |> Enum.at(0)
+
+    digits_pattern = Map.put_new(digits_pattern, 0, pattern_0)
+
+    pattern_6 =
+      Enum.filter(possible_0_6, fn pattern ->
+        pattern != pattern_0
+      end)
+      |> Enum.at(0)
+
+    digits_pattern = Map.put_new(digits_pattern, 6, pattern_6)
+
+    # limit 2 and 5
+    pattern_5 =
+      Enum.filter(possible_2_3_5, fn pattern ->
+        Enum.all?(String.graphemes(pattern), fn ch ->
+          case :binary.match(digits_pattern[6], to_string(ch)) do
+            :nomatch -> false
+            _ -> true
+          end
+        end)
+      end)
+      |> Enum.at(0)
+
+    digits_pattern = Map.put_new(digits_pattern, 5, pattern_5)
+
+    # the remaining number is 2
+    pattern_2 =
+      Enum.filter(possible_2_3_5, fn pattern ->
+        pattern != pattern_5 and pattern != pattern_3
+      end)
+      |> Enum.at(0)
+
+    Map.put_new(digits_pattern, 2, pattern_2)
+  end
+
+  def clock_value(clock_wiring, display_patterns) do
+    clock_val =
+      Enum.flat_map(display_patterns, fn pattern ->
+        Enum.filter(clock_wiring, fn {_, wire_pattern} ->
+          wire_pattern ==
+            Enum.sort(String.to_charlist(pattern))
+            |> to_string()
+        end)
+      end)
+      |> Enum.reduce("", fn item, acc ->
+        {k, _} = item
+        acc <> Integer.to_string(k)
+      end)
+
+    {ival, _} = Integer.parse(clock_val)
+    ival
+  end
+end
+
+Enum.map(signal_values, fn item ->
+  {signal_value, readings} = item
+
+  signal_value_sorted =
+    String.split(signal_value, " ")
+    |> Enum.map(fn value ->
+      to_string(Enum.sort(to_charlist(value)))
+    end)
+
+  clock_wiring = SevenSegDisplay.find_wire_pattern(signal_value_sorted)
+
+  reading_value_sorted =
+    String.split(readings, " ")
+    |> Enum.map(fn value ->
+      to_string(Enum.sort(to_charlist(value)))
+    end)
+
+  SevenSegDisplay.clock_value(clock_wiring, reading_value_sorted)
+end)
+|> Enum.sum()
+```
+
+```output
+1091609
+```
