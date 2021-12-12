@@ -1,3 +1,4 @@
+<!-- vim: syntax=markdown -->
 <!-- livebook:{"autosave_interval_s":30,"persist_outputs":true} -->
 
 # Day 8
