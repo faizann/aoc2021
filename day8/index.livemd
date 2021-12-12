@@ -1,9 +1,8 @@
-<!-- vim: syntax=markdown -->
 <!-- livebook:{"autosave_interval_s":30,"persist_outputs":true} -->
 
 # Day 8
 
-## Section
+## Setup
 
 ```elixir
 number_segments = %{
